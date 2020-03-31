@@ -35,7 +35,6 @@ public class JpaDemoController {
     @PostMapping("user/findByName")
     public List<JpaUser> findByName(@RequestParam String name) {
         List<JpaUser> a = userRepository.findByName(name);
-        Optional<JpaUser> byId = userRepository.findById(1L);
         return a;
     }
 }
