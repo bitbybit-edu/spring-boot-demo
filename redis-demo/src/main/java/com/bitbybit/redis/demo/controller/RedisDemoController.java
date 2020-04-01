@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 
 @RestController
 @RequestMapping("redis")
@@ -42,12 +43,13 @@ public class RedisDemoController {
     }
 
     @GetMapping("jpaUser/{id}")
-    public JpaUser findById(@PathVariable Long id) {
+    public JpaUser findById(@PathVariable Long id) throws InterruptedException {
         Object o = redisTemplate.opsForValue().get(id.toString());
         JpaUser jpaUser;
         if (Objects.isNull(o)) {
             Optional<JpaUser> byId = userRepository.findById(id);
             jpaUser = (byId.isPresent() ? byId.get() : null);
+            Thread.sleep(new Double(Math.random() * 1000).longValue());
             redisTemplate.opsForValue().set("jpa:user:" + id, jpaUser);
         } else {
             jpaUser = (JpaUser) o;
@@ -55,5 +57,10 @@ public class RedisDemoController {
         return jpaUser;
     }
 
+    @GetMapping("jpaUser/database/{id}")
+    public JpaUser findByIdDatabase(@PathVariable Long id) throws InterruptedException {
+        Optional<JpaUser> byId = userRepository.findById(id);
+        return byId.get();
+    }
 
 }
