@@ -4,12 +4,16 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import java.io.Serializable;
 
 /**
  * @author liulin
  */
 @Entity(name = "jpa_user")
-public class JpaUser {
+public class JpaUser implements Serializable {
+
+    private static final long serialVersionUID = 857595626281790932L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
