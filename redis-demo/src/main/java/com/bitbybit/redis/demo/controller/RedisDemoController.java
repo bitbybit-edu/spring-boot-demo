@@ -109,7 +109,6 @@ public class RedisDemoController {
                     logger.info("uuid = {} get lock", uuid);
                     Optional<JpaUser> byId = userRepository.findById(id);
                     jpaUser = (byId.isPresent() ? byId.get() : null);
-                    Thread.sleep(new Double(Math.random() * 1000).longValue());
                     redisTemplate.opsForValue().set("jpa:user:" + id, jpaUser);
                 } else {
                     logger.info("uuid = {} not get lock", uuid);
@@ -126,7 +125,7 @@ public class RedisDemoController {
                         redisTemplate.delete("jpa:user:lock:" + id);
                         logger.info("uuid = {} release lock", uuid);
                     } else {
-                        logger.error("uuid = {} relesse fail lock expired", uuid);
+                        logger.error("uuid = {} relesse fail lock invalid", uuid);
                     }
                 } catch (Exception e) {
                     logger.error("release lock fail", e);
