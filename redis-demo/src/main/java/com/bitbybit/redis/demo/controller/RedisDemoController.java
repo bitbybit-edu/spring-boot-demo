@@ -1,5 +1,6 @@
 package com.bitbybit.redis.demo.controller;
 
+import com.bitbybit.redis.demo.constant.CacheConstant;
 import com.bitbybit.redis.demo.entity.JpaUser;
 import com.bitbybit.redis.demo.repository.UserRepository;
 import org.slf4j.Logger;
@@ -38,6 +39,8 @@ public class RedisDemoController {
 
     String password = "123456";
 
+    private Integer throughDatabaseCount = 0;
+
     @Autowired
     RedisTemplate<String, Object> redisTemplate;
 
@@ -56,13 +59,17 @@ public class RedisDemoController {
 
     @GetMapping("jpaUser/{id}")
     public JpaUser findById(@PathVariable Long id) throws InterruptedException {
-        Object o = redisTemplate.opsForValue().get("jpa:user:" + id);
+        Object o = redisTemplate.opsForValue().get(CacheConstant.JPA_USER + id);
         JpaUser jpaUser;
         if (Objects.isNull(o)) {
+            synchronized (throughDatabaseCount) {
+                throughDatabaseCount += 1;
+                logger.info("through database count = {}", throughDatabaseCount);
+            }
             Optional<JpaUser> byId = userRepository.findById(id);
             jpaUser = (byId.isPresent() ? byId.get() : null);
             Thread.sleep(new Double(Math.random() * 1000).longValue());
-            redisTemplate.opsForValue().set("jpa:user:" + id, jpaUser);
+            redisTemplate.opsForValue().set(CacheConstant.JPA_USER + id, jpaUser);
         } else {
             jpaUser = (JpaUser) o;
         }
@@ -99,17 +106,17 @@ public class RedisDemoController {
 
     @GetMapping("jpaUser/mutexLock/{id}")
     public JpaUser mutexLockFindById(@PathVariable Long id) throws InterruptedException {
-        Object o = redisTemplate.opsForValue().get("jpa:user:" + id);
+        Object o = redisTemplate.opsForValue().get(CacheConstant.JPA_USER + id);
         JpaUser jpaUser;
         if (Objects.isNull(o)) {
             String uuid = UUID.randomUUID().toString();
             try {
 
-                if (redisTemplate.opsForValue().setIfAbsent("jpa:user:lock:" + id, uuid, 10, TimeUnit.SECONDS)) {
+                if (redisTemplate.opsForValue().setIfAbsent(CacheConstant.JPA_USER_LOCK + id, uuid, 10, TimeUnit.SECONDS)) {
                     logger.info("uuid = {} get lock", uuid);
                     Optional<JpaUser> byId = userRepository.findById(id);
                     jpaUser = (byId.isPresent() ? byId.get() : null);
-                    redisTemplate.opsForValue().set("jpa:user:" + id, jpaUser);
+                    redisTemplate.opsForValue().set(CacheConstant.JPA_USER + id, jpaUser);
                 } else {
                     logger.info("uuid = {} not get lock", uuid);
                     Thread.sleep(100L);
@@ -121,8 +128,8 @@ public class RedisDemoController {
                 logger.error("get user fail", e);
             } finally {
                 try {
-                    if (uuid.equals(redisTemplate.opsForValue().get("jpa:user:lock:" + id))) {
-                        redisTemplate.delete("jpa:user:lock:" + id);
+                    if (uuid.equals(redisTemplate.opsForValue().get(CacheConstant.JPA_USER_LOCK + id))) {
+                        redisTemplate.delete(CacheConstant.JPA_USER_LOCK + id);
                         logger.info("uuid = {} release lock", uuid);
                     } else {
                         logger.error("uuid = {} relesse fail lock invalid", uuid);
@@ -137,5 +144,13 @@ public class RedisDemoController {
             jpaUser = (JpaUser) o;
         }
         return jpaUser;
+    }
+
+    @PostMapping("del/{id}")
+    public void del(@PathVariable Long id) {
+        synchronized (throughDatabaseCount) {
+            redisTemplate.delete(CacheConstant.JPA_USER + id);
+            throughDatabaseCount = 0;
+        }
     }
 }
