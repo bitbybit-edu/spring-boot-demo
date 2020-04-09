@@ -6,7 +6,9 @@ import com.bitbybit.redis.demo.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,8 +17,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -132,7 +139,7 @@ public class RedisDemoController {
                         redisTemplate.delete(CacheConstant.JPA_USER_LOCK + id);
                         logger.info("uuid = {} release lock", uuid);
                     } else {
-                        logger.error("uuid = {} relesse fail lock invalid", uuid);
+                        logger.error("uuid = {} release fail lock invalid", uuid);
                     }
                 } catch (Exception e) {
                     logger.error("release lock fail", e);
@@ -152,5 +159,21 @@ public class RedisDemoController {
             redisTemplate.delete(CacheConstant.JPA_USER + id);
             throughDatabaseCount = 0;
         }
+    }
+
+    /**
+     * 测试scan
+     */
+    @ResponseBody
+    @PostMapping("scan/{pattern}")
+    public List<String> scan(@PathVariable String pattern) throws IOException {
+        List<String> keys = new ArrayList<>(1 >> 6);
+
+        ScanOptions scanOptions = ScanOptions.scanOptions().match(pattern + "*").count(100).build();
+        Cursor<byte[]> scan = redisTemplate.getConnectionFactory().getConnection().scan(scanOptions);
+        scan.forEachRemaining(key -> {
+            keys.add(new String(key, StandardCharsets.UTF_8));
+        });
+        return keys;
     }
 }
