@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -175,5 +176,35 @@ public class RedisDemoController {
             keys.add(new String(key, StandardCharsets.UTF_8));
         });
         return keys;
+    }
+
+    /**
+     * lru测试
+     * 首先把redis 的maxmemory设置到一个值
+     * 再设置 maxmemory-policy LRU策略
+     *
+     * @param times 循环次数
+     */
+    @PostMapping("lru/{times}")
+    public void lru(@PathVariable Long times) {
+        logger.info("times = {}", times);
+        for (Long i = 0L; i < times; i++) {
+            logger.info("redis set i = {}", i.toString());
+            try {
+                redisTemplate.opsForValue().set(i.toString(), i.toString());
+            } catch (Exception e) {
+                logger.error("redis set fail i = {}", i, e);
+            }
+
+        }
+    }
+
+    @PostMapping("del/all")
+    public void delAll() {
+        Set<String> keys = redisTemplate.keys("*");
+        for (String key : keys) {
+            Boolean delete = redisTemplate.delete(key);
+            logger.info("del key = {}, result = {}", key, delete);
+        }
     }
 }

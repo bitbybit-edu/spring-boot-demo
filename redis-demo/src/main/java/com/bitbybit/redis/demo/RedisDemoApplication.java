@@ -5,6 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.RedisTemplate;
 
+/**
+ * @author liulin
+ */
 @SpringBootApplication
 public class RedisDemoApplication {
 
