@@ -41,11 +41,11 @@ public class RedisDemoController {
 
     String driverClassName = "com.mysql.cj.jdbc.Driver";
 
-    String url = "jdbc:mysql://47.93.233.111:3306/db_example";
+    String url = "jdbc:mysql://121.36.156.102:16380/stock";
 
-    String username = "liulin";
+    String username = "root";
 
-    String password = "123456";
+    String password = "tgY7gHN7dhlAn7zS";
 
     private Integer throughDatabaseCount = 0;
 
@@ -86,6 +86,7 @@ public class RedisDemoController {
 
     @GetMapping("jpaUser/database/{id}")
     public JpaUser findByIdDatabase(@PathVariable Long id) throws InterruptedException {
+        logger.info("直连数据库查询user:param = {}", id);
         Optional<JpaUser> byId = userRepository.findById(id);
         return byId.get();
     }
@@ -96,7 +97,7 @@ public class RedisDemoController {
         try {
             Class.forName(driverClassName);
             connection = DriverManager.getConnection(url, username, password);
-
+            logger.info("开数据库连接");
         } catch (Exception e) {
             logger.error("connection fail", e);
         } finally {
